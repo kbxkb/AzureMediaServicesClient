@@ -182,9 +182,9 @@ Postman-Token: 45341887-870c-55e7-3869-0ac02e05271b
 ##### Notes
 
 1. Though you sent this request to 'media.windows.net', you should not send subsequent requests to AMS to this host. You should use the hostname returned in this response ('wamsbluclus001rest-hs.cloudapp.net' in this example) from here on
-2. The value of the 'Authorization' header uses the access token. Note the word 'Bearer' followed by a space must precede the access token. Also note that if ther access token has expired, you will have to re-issue a new one by repeating Step 1
+2. The value of the 'Authorization' header uses the access token. Note the word 'Bearer' followed by a space must precede the access token. Also note that if the access token has expired, you will have to re-issue a new one by repeating Step 1
 
-## Create an AMS 'Asset' and associated resource objects:
+## Create an AMS 'Asset' and associated resource:
 
 #### Step 3 - Create an Asset
 
@@ -228,9 +228,10 @@ Postman-Token: 611b299d-ea2d-f8c8-d65c-87f9bdf74f8a
 1. Note that we are using the hostname we received in Step 2 from here on
 2. You can use the latest (as of this writing, May 2015) values of 'DataServiceVersion' and 'MaxDataServiceVersion' - '3.0'. In this example, certain older values are used
 3. You can use the latest (as of this writing, May 2015) value of 'x-ms-version' - '2.9'. In this example, 2.8, on older value, is used. Be aware that functionalities change between these API versions. An example known to work with one version is not guaranteed to work with another API version
-4. This call creates an AMS 'Asset' resource for you. It is empty after creation. The 'Uri' in response gives us the resource identifier for this Asset. Note that this Uri actually uses an *_Azure Storage_* name as its fqdn. This is the storage name you specified when creating the Azure Media Services account. Also note that the part after the fqdn is actually the name of a blob container created in the storage account.
+4. This call creates an AMS 'Asset' resource for you. It is empty after creation. The 'Uri' in response gives us the resource identifier for this Asset. Note that this Uri actually uses an *_Azure Storage Account_* name as its fqdn. This is the storage account name you specified when creating the Azure Media Services account. Also note that the part after the fqdn is actually the name of a blob container created in the storage account
 5. At this stage, you can go back to the portal, browse to Storage, list your containers and see this newly created container representing the AMS Asset
-6. Make a note of the 'Id' in the response. We will be using this several times below when we update or refer to this asset during subsequent operations
+6. The REQUEST body shown here is minimal. There are other things you can specify, for a complete list see the [REST API reference for Azure Media Services](https://msdn.microsoft.com/en-us/library/azure/hh973617.aspx). Specifically, all properties of the Asset entity are listed [here](https://msdn.microsoft.com/en-us/library/azure/hh974277.aspx#asset_entity_properties) - an interesting one is 'Options', whose default value is 0 (meaning that the asset will not be encrypted) - that is what we have used here. You can have values of 1, 2 or 4 specifying different encryption schemes. If you encrypt your asset, you will have to call several other REST API-s not shown in this tutorial to enable its delivery and decryption
+7. Make a note of the 'Id' in the response. We will be using this several times below when we update or refer to this asset during subsequent operations
 
 #### Step 4 - Create an AssetFile (metadata for Asset)
 
@@ -262,16 +263,21 @@ Postman-Token: a1d1ea60-21c4-5ab3-f434-3f4bf7691687
 
 ```
 {
-"odata.metadata": "https://wamsbluclus001rest-hs.cloudapp.net/api/$metadata#Assets/@Element",
-"Id": "nb:cid:UUID:cc27435d-1500-80c3-5690-f1e4fd03b5fd",
-"State": 0,
-"Created": "2015-05-18T02:15:19.2871684Z",
-"LastModified": "2015-05-18T02:15:19.2871684Z",
-"AlternateId": null,
+"odata.metadata": "https://wamsbluclus001rest-hs.cloudapp.net/api/$metadata#Files/@Element",
+"Id": "nb:cid:UUID:9412435d-1500-80c3-1118-f1e4fd04ed00",
 "Name": "koushik.mp4",
-"Options": 0,
-"Uri": "https://testamsstorage.blob.core.windows.net/asset-cc27435d-1500-80c3-5690-f1e4fd03b5fd",
-"StorageAccountName": "testamsstorage"
+"ContentFileSize": "0",
+"ParentAssetId": "nb:cid:UUID:cc27435d-1500-80c3-5690-f1e4fd03b5fd",
+"EncryptionVersion": null,
+"EncryptionScheme": null,
+"IsEncrypted": false,
+"EncryptionKeyId": null,
+"InitializationVector": null,
+"IsPrimary": false,
+"LastModified": "2015-05-18T02:24:01.1515399Z",
+"Created": "2015-05-18T02:24:01.1515399Z",
+"MimeType": "video/mp4",
+"ContentChecksum": null
 }
 ```
 
@@ -282,3 +288,4 @@ Postman-Token: a1d1ea60-21c4-5ab3-f434-3f4bf7691687
 3. You can use the latest (as of this writing, May 2015) value of 'x-ms-version' - '2.9'. In this example, 2.8, on older value, is used. Be aware that functionalities change between these API versions. An example known to work with one version is not guaranteed to work with another API version
 4. This call creates an AMS 'AssetFile' resource for you and associates that with the 'Asset' object created in Step 3. This happens because you specify the id of the asset created in step 3 ('Id' field from Step 3's response) in the 'ParentAssetId' field of this Request
 5. Make a note of the 'Id' in the response. We will be using this below when we update the metadata later
+
