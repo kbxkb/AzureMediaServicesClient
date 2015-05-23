@@ -184,7 +184,7 @@ Postman-Token: 45341887-870c-55e7-3869-0ac02e05271b
 1. Though you sent this request to 'media.windows.net', you should not send subsequent requests to AMS to this host. You should use the hostname returned in this response ('wamsbluclus001rest-hs.cloudapp.net' in this example) from here on
 2. The value of the 'Authorization' header uses the access token. Note the word 'Bearer' followed by a space must precede the access token. Also note that if the access token has expired, you will have to re-issue a new one by repeating Step 1
 
-## Create an AMS 'Asset' and associated resource:
+## Create an AMS 'Asset' and associated resources:
 
 #### Step 3 - Create an Asset
 
@@ -289,3 +289,52 @@ Postman-Token: a1d1ea60-21c4-5ab3-f434-3f4bf7691687
 4. This call creates an AMS 'AssetFile' resource for you and associates that with the 'Asset' object created in Step 3. This happens because you specify the id of the asset created in step 3 ('Id' field from Step 3's response) in the 'ParentAssetId' field of this Request
 5. Make a note of the 'Id' in the response. We will be using this below when we update the metadata later
 
+#### Step 5 - Create an Access Policy for writing into blob storage
+
+###### Http Request
+
+```
+POST /api/AccessPolicies HTTP/1.1
+Host: wamsbluclus001rest-hs.cloudapp.net
+Content-Type: application/json
+DataServiceVersion: 3.0
+MaxDataServiceVersion: 3.0
+Accept: application/json;odata=verbose
+Accept-Charset: UTF-8
+Authorization: Bearer http%3a%2f%2fschemas.xmlsoap.org%2fws%2f2005%2f05%2fidentity%2fclaims%2fnameidentifier=testams&urn%3aSubscriptionId=21bb6118-8aa3-4408-adbb-b057912c24b6&http%3a%2f%2fschemas.microsoft.com%2faccesscontrolservice%2f2010%2f07%2fclaims%2fidentityprovider=https%3a%2f%2fwamsprodglobal001acs.accesscontrol.windows.net%2f&Audience=urn%3aWindowsAzureMediaServices&ExpiresOn=1431938655&Issuer=https%3a%2f%2fwamsprodglobal001acs.accesscontrol.windows.net%2f&HMACSHA256=x4V9XC21vgwqNkb974nxmYjTIQ4%2b1xK8ororQcN7HFY%3d
+x-ms-version: 2.9
+Expect: 100-continue
+Cache-Control: no-cache
+Postman-Token: bdf2fe4b-fa7b-88cf-a7db-27bdef643fe6
+
+{"Name": "KoushikPolicy", "DurationInMinutes" : "43200", "Permissions" : 2 }
+```
+
+###### Http Response
+
+```
+{
+"d": {
+"__metadata": {
+"id": "https://wamsbluclus001rest-hs.cloudapp.net/api/AccessPolicies('nb%3Apid%3AUUID%3Acb227956-91d8-441c-946b-0130479508f5')",
+"uri": "https://wamsbluclus001rest-hs.cloudapp.net/api/AccessPolicies('nb%3Apid%3AUUID%3Acb227956-91d8-441c-946b-0130479508f5')",
+"type": "Microsoft.Cloud.Media.Vod.Rest.Data.Models.AccessPolicy"
+},
+"Id": "nb:pid:UUID:cb227956-91d8-441c-946b-0130479508f5",
+"Created": "\/Date(1431917232698)\/",
+"LastModified": "\/Date(1431917232698)\/",
+"Name": "KoushikPolicy",
+"DurationInMinutes": 43200,
+"Permissions": 2
+}
+}
+```
+
+###### Notes
+
+1. An access policy is required to create a Locator. A Locator is required to get an upload URL that we will use to upload our media file. We will create a Locator next
+2. Note that the access policy will be in effect until it expires - and we specify the duration in minutes in the REQUEST JSON
+3. Note that the 'Permissions' field in REQUEST JSON has possible values of 0, 1, 2, 4 and 8 - please see [here](https://msdn.microsoft.com/library/azure/hh974297.aspx#accesspolicy_properties) for the API reference and all possible values/meanings
+4. Make a note of the 'Id' in the response. We will be using this when we refer to this access policy in subsequent calls
+
+#### Step 6 - Create a Locator of Type 1 (SAS) for uploading a media file:
