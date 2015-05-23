@@ -338,3 +338,48 @@ Postman-Token: bdf2fe4b-fa7b-88cf-a7db-27bdef643fe6
 4. Make a note of the 'Id' in the response. We will be using this when we refer to this access policy in subsequent calls
 
 #### Step 6 - Create a Locator of Type 1 (SAS) for uploading a media file:
+
+###### Http Request
+
+```
+POST /api/Locators HTTP/1.1
+Host: wamsbluclus001rest-hs.cloudapp.net
+Content-Type: application/json
+DataServiceVersion: 3.0
+MaxDataServiceVersion: 3.0
+Accept: application/json
+Accept-Charset: UTF-8
+Authorization: Bearer http%3a%2f%2fschemas.xmlsoap.org%2fws%2f2005%2f05%2fidentity%2fclaims%2fnameidentifier=testams&urn%3aSubscriptionId=21bb6118-8aa3-4408-adbb-b057912c24b6&http%3a%2f%2fschemas.microsoft.com%2faccesscontrolservice%2f2010%2f07%2fclaims%2fidentityprovider=https%3a%2f%2fwamsprodglobal001acs.accesscontrol.windows.net%2f&Audience=urn%3aWindowsAzureMediaServices&ExpiresOn=1431939893&Issuer=https%3a%2f%2fwamsprodglobal001acs.accesscontrol.windows.net%2f&HMACSHA256=Eh6h09tQCsgSh0FLBA77G6wxKYh55KBGri7L87kSBF8%3d
+x-ms-version: 2.9
+Cache-Control: no-cache
+Postman-Token: ec29dc11-7646-329f-5adc-4075c9456b61
+
+{"AccessPolicyId": "nb:pid:UUID:cb227956-91d8-441c-946b-0130479508f5", "AssetId" : "nb:cid:UUID:cc27435d-1500-80c3-5690-f1e4fd03b5fd", "StartTime" : "2015-05-17T22:00:00", "Type":1}
+```
+
+###### Http Response
+
+```
+{
+"odata.metadata": "https://wamsbluclus001rest-hs.cloudapp.net/api/$metadata#Locators/@Element",
+"Id": "nb:lid:UUID:141ea923-ae46-41c4-9408-55c5ebc41938",
+"ExpirationDateTime": "2015-06-16T22:00:00",
+"Type": 1,
+"Path": "https://testamsstorage.blob.core.windows.net/asset-cc27435d-1500-80c3-5690-f1e4fd03b5fd?sv=2012-02-12&sr=c&si=141ea923-ae46-41c4-9408-55c5ebc41938&sig=AQNVV2VP%2B4XKt5PQHtwDOhQnF0yfXKmp31f9CbRAlfY%3D&st=2015-05-17T22%3A00%3A00Z&se=2015-06-16T22%3A00%3A00Z",
+"BaseUri": "https://testamsstorage.blob.core.windows.net/asset-cc27435d-1500-80c3-5690-f1e4fd03b5fd",
+"ContentAccessComponent": "?sv=2012-02-12&sr=c&si=141ea923-ae46-41c4-9408-55c5ebc41938&sig=AQNVV2VP%2B4XKt5PQHtwDOhQnF0yfXKmp31f9CbRAlfY%3D&st=2015-05-17T22%3A00%3A00Z&se=2015-06-16T22%3A00%3A00Z",
+"AccessPolicyId": "nb:pid:UUID:cb227956-91d8-441c-946b-0130479508f5",
+"AssetId": "nb:cid:UUID:cc27435d-1500-80c3-5690-f1e4fd03b5fd",
+"StartTime": "2015-05-17T22:00:00",
+"Name": null
+}
+```
+
+###### Notes
+
+1. This step is necessary to get the actual upload URL that we will use to upload our content file to AMS. The 'Path' and 'BaseUri' elements in the RESPONSE JSON will help us create the actual upload URL next
+2. Note that in the REQUEST JSON, we are specifying the 'AccessPolicyId' from the 'Id' field in the response from Step 5, and 'AssetId' from the 'Id' field in the response from Step 3
+3. Note that in the REQUEST JSON, we are specifying 'StartTime'. In order to avoid confusion, you can use UTC time and append a 'Z' to the time string - like this: "2015-05-17T22:00:00Z". Note that this can be (and should be, unless you have a reason to create a locator that you want to be activated in the future) a time in the past. If you use the exact current time, your locator may not be active until a few minutes, because Azure servers are not time-synced with your machine
+4. Note that in the REQUEST JSON, we are specifying 'Type' as 1 - see [here](https://msdn.microsoft.com/library/azure/hh974308.aspx#locator_entity_properties) for all possible values and meanings. In short, use 1 for SAS type of locators, and use 2 for On Demand type of locators
+5. The 'Id' field in the RESPONSE JSON gives the locator's id
+6. We will use the 'Path' field in this RESPONSE JSON to construct the upload URL and access Azure Blob Storage next
