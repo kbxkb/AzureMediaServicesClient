@@ -465,9 +465,9 @@ $authHeader = Generate-AuthString -requestUtcTime $timeNow -containerAndBlobPath
 Write-Output $timeNow
 Write-Output $authHeader
 ```
-9. How to use this Power Shell script:
-- Replace the value of the variable $accountName with your STORAGE account name. Hint: Your storage account name is the first segment of the "Path" in Locator Creation Response after the pair of forward slashes and before ".blob.core.windows.net". Also, log into the portal and click on "Storage", locate the storage account associated with your AMS account, click on "Manage Keys" and it will show your storage account name
-- Replace the value of $accountKey with your STORAGE account key. Log into the portal and click on "Storage", locate the storage account associated with your AMS account, click on "Manage Keys" and it will show your storage account key (choose either the primary or the secondary key)
-- Replace the value of $resourcePath with your own - it is basically the URL from "Path" in Locator Creation Response. Drop everything from '?' onwards, just take the URL without query strings. Append "/" and then the name of the MP4 file (e.g., "/koushik.mp4" above)
-- Replace the value of $fileSize with the exact size of the MP4 file in bytes
-- Run it. It will print out 2 things - The UTC time and the signature. Copy the UTC time in both the "Date" and "x-ms-date" headers, and copy the signature into the Authorization header after the colon. You have to fire off the HTTP request within 15 minutes of generating the signature using the script, otherwise you will get a 4XX response
+- How to use this Power Shell script:
+  - Replace the value of the variable $accountName with your STORAGE account name. Hint: Your storage account name is the first segment of the "Path" in Locator Creation Response after the pair of forward slashes and before ".blob.core.windows.net". Also, log into the portal and click on "Storage", locate the storage account associated with your AMS account, click on "Manage Keys" and it will show your storage account name
+  - Replace the value of $accountKey with your STORAGE account key. Log into the portal and click on "Storage", locate the storage account associated with your AMS account, click on "Manage Keys" and it will show your storage account key (choose either the primary or the secondary key)
+  - Replace the value of $resourcePath with your own - it is basically the URL from "Path" in Locator Creation Response. Drop everything from '?' onwards, just take the URL without query strings. Append "/" and then the name of the MP4 file (e.g., "/koushik.mp4" above)
+  - Replace the value of $fileSize with the exact size of the MP4 file in bytes
+  - Run it. It will print out 2 things - The UTC time and the signature. Copy the UTC time in both the "Date" and "x-ms-date" headers, and copy the signature into the Authorization header after the colon. You have to fire off the HTTP request within 15 minutes of generating the signature using the script, otherwise you will get a 4XX response
