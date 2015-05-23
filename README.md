@@ -11,7 +11,7 @@ Because this is not *code* per se - just a series of HTTP requests and responses
 
 **DISCLAIMER**: This is meant for guidance and demonstration only. This is not intended to be used in production as-is.
 
-## Common to all REST transactions below
+## Common to all REST transactions below:
 
 Instead of repeating these *notes* for each REST transaction below, clustering them together here:
 
@@ -19,14 +19,17 @@ Instead of repeating these *notes* for each REST transaction below, clustering t
 2. Some of the HTTP headers are required, some are just good practice to have. Examples do not distinguish between them
 3. For operations against Azure storage (like when we are uploading a media file), consider using the 'x-ms-client-request-id' header for request logging, examples here do not use it
 
-## Set Yourself Up for making HTTP calls to AMS and receive something other than 4XX
+## Set Yourself Up for making HTTP calls to AMS:
 
-### Step 0 [Create an Azure Media Services account](http://azure.microsoft.com/en-us/documentation/articles/media-services-create-account/) using the Azure Portal
+#### Step 0 Create an Azure Media Services account using the Azure Portal
 
-### Step 1 Get an access token
+Use the Azure portal to create an Azure Media Services account, as explained [here](http://azure.microsoft.com/en-us/documentation/articles/media-services-create-account/)
+
+#### Step 1 Get an access token
 
 ###### Http Request
 
+```
 POST /v2/OAuth2-13 HTTP/1.1
 Host: wamsprodglobal001acs.accesscontrol.windows.net
 Content-Type: application/x-www-form-urlencoded
@@ -38,15 +41,18 @@ Cache-Control: no-cache
 Postman-Token: 25a3c853-d004-b0d4-2c52-a7e2fb4d3745
 
 grant_type=client_credentials&client_id=testams&client_secret={{your_ams_key_here}}&scope=urn%3AWindowsAzureMediaServices
+```
 
 ##### Http Response
 
+```
 {
 "token_type": "http://schemas.xmlsoap.org/ws/2009/11/swt-token-profile-1.0",
 "access_token": "http%3a%2f%2fschemas.xmlsoap.org%2fws%2f2005%2f05%2fidentity%2fclaims%2fnameidentifier=testams&urn%3aSubscriptionId=21bb6118-8aa3-4408-adbb-b057912c24b6&http%3a%2f%2fschemas.microsoft.com%2faccesscontrolservice%2f2010%2f07%2fclaims%2fidentityprovider=https%3a%2f%2fwamsprodglobal001acs.accesscontrol.windows.net%2f&Audience=urn%3aWindowsAzureMediaServices&ExpiresOn=1432165204&Issuer=https%3a%2f%2fwamsprodglobal001acs.accesscontrol.windows.net%2f&HMACSHA256=lWkRuaUeKz%2bTcDoD4zC9DGthFpSwhkiZrBQgGlgj4Vg%3d",
 "expires_in": "21600",
 "scope": "urn:WindowsAzureMediaServices"
 }
+```
 
 ##### Notes
 
