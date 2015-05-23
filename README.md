@@ -472,3 +472,25 @@ Write-Output $authHeader
   - Replace the value of $resourcePath with your own - it is basically the URL from "Path" in Locator Creation Response. Drop everything from '?' onwards, just take the URL without query strings. Append "/" and then the name of the MP4 file (e.g., "/koushik.mp4" above)
   - Replace the value of $fileSize with the exact size of the MP4 file in bytes
   - Run it. It will print out 2 things - The UTC time and the signature. Copy the UTC time in both the "Date" and "x-ms-date" headers, and copy the signature into the Authorization header after the colon. You have to fire off the HTTP request within 15 minutes of generating the signature using the script, otherwise you will get a 4XX response
+
+#### Step 8 - Update AssetFile w/ details of the uploaded media file (size, name, mime type):
+
+###### Http Request (as this is a HTTP MERGE request, which the Postman tool does not support today, I have shown the equivalent curl command)
+
+```
+curl -v -X MERGE -H "Content-Type: application/json" -H "DataServiceVersion: 3.0" -H "MaxDataServiceVersion: 3.0" -H "Accept: application/json" -H "Accept-Charset: UTF-8" -H "Authorization: Bearer http%3a%2f%2fschemas.xmlsoap.org%2fws%2f2005%2f05%2fidentity%2fclaims%2fnameidentifier=testams&urn%3aSubscriptionId=21bb6118-8aa3-4408-adbb-b057912c24b6&http%3a%2f%2fschemas.microsoft.com%2faccesscontrolservice%2f2010%2f07%2fclaims%2fidentityprovider=https%3a%2f%2fwamsprodglobal001acs.accesscontrol.windows.net%2f&Audience=urn%3aWindowsAzureMediaServices&ExpiresOn=1432085627&Issuer=https%3a%2f%2fwamsprodglobal001acs.accesscontrol.windows.net%2f&HMACSHA256=PcSN6G1QrsAhQDZzigqP4WZR8wzzOHYf0GrM5ylu%2byE%3d" -H "x-ms-version: 2.9" -H "Cache-Control: no-cache" -H "Postman-Token: b766efbb-56ce-e278-3771-f6dc49c8a7da" -d '{"ContentFileSize":"10498677","Id":"nb:cid:UUID:9412435d-1500-80c3-1118-f1e4fd04ed00","MimeType":"video/mp4","Name":"koushik.mp4","ParentAssetId":"nb:cid:UUID:cc27435d-1500-80c3-5690-f1e4fd03b5fd"}' "https://wamsbluclus001rest-hs.cloudapp.net/api/Files('nb%3Acid%3AUUID%3A9412435d-1500-80c3-1118-f1e4fd04ed00')"
+
+```
+
+###### Http Response
+
+```
+{{No response body, just 204 No Content}}
+```
+
+###### Notes
+
+1. As this is a HTTP MERGE request, which the Postman tool does not support today, I have shown the equivalent curl command
+2. The 'Id' field in the REQUEST JSON Payload is the AssetFile Id that we got in the response when we created the AssetFile in Step 4 above
+3. The 'ParentAssetId' field in the REQUEST JSON Payload is the Asset Id that we got in the response when we created the Asset in Step 3 above
+4. An interesting point to note is the URL where we send this request. Note the OData filter used. AMS is fully OData compatible
