@@ -289,6 +289,8 @@ Postman-Token: a1d1ea60-21c4-5ab3-f434-3f4bf7691687
 4. This call creates an AMS 'AssetFile' resource for you and associates that with the 'Asset' object created in Step 3. This happens because you specify the id of the asset created in step 3 ('Id' field from Step 3's response) in the 'ParentAssetId' field of this Request
 5. Make a note of the 'Id' in the response. We will be using this below when we update the metadata later
 
+## Prepare to upload your media file to your Asset:
+
 #### Step 5 - Create an Access Policy for writing into blob storage
 
 ###### Http Request
@@ -383,3 +385,35 @@ Postman-Token: ec29dc11-7646-329f-5adc-4075c9456b61
 4. Note that in the REQUEST JSON, we are specifying 'Type' as 1 - see [here](https://msdn.microsoft.com/library/azure/hh974308.aspx#locator_entity_properties) for all possible values and meanings. In short, use 1 for SAS type of locators, and use 2 for On Demand type of locators
 5. The 'Id' field in the RESPONSE JSON gives the locator's id
 6. We will use the 'Path' field in this RESPONSE JSON to construct the upload URL and access Azure Blob Storage next
+
+## Upload your media file:
+
+#### Step 7 - Upload a media file to the blob storage associated with the AMS account:
+
+###### Http Request
+
+```
+PUT /asset-cc27435d-1500-80c3-5690-f1e4fd03b5fd/koushik.mp4 HTTP/1.1
+Host: testamsstorage.blob.core.windows.net
+x-ms-version: 2012-02-12
+Date: Tue, 19 May 2015 16:46:08 GMT
+x-ms-date: Tue, 19 May 2015 16:46:08 GMT
+Content-Type: application/octet-stream
+x-ms-blob-type: BlockBlob
+Authorization: SharedKey testamsstorage:kFH6XA+GBujEQNfr19MLkdbpHsEwOFgqRIgQ1ghAti0=
+Content-Length: 10498677
+Cache-Control: no-cache
+Postman-Token: e62793bc-2219-a563-2beb-4e7a20815305
+
+{{POST Body was the binary mp4 file koushik.mp4}}
+```
+
+###### Http Response
+
+```
+{{No response body, just 201 created}}
+```
+
+###### Notes
+
+1. XXX
