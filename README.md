@@ -416,4 +416,58 @@ Postman-Token: e62793bc-2219-a563-2beb-4e7a20815305
 
 ###### Notes
 
-1. XXX
+1. This is a request to Azure storage (as opposed to Azure Media Services, which all other calls in this tutorial are)
+2. See all supported request headers [here](https://msdn.microsoft.com/en-us/library/azure/dd179451.aspx) - in the section 'Request Headers (Block and Page Blobs'
+3. The upload URL is constructed from the 'Path' field of the response from Step 6 (where we created the locator). Drop everything from '?' onwards, just take the URL without query strings. Append "/" and then the name of the MP4 file (e.g., "/koushik.mp4" above)
+4. The value of x-ms-version header should be the value of "sv" query string parameter from the "Path" field of the response from Step 6 (where we created the locator)
+5. The value of Content-Length header should be the exact size of the MP4 file in bytes
+6. The value of the signature inside the Authorization Header needs to be calculated as per guidance [here](https://msdn.microsoft.com/en-us/library/azure/dd179428.aspx) - however, the guidance can quickly get pretty confusing. Hence, I am going to show a more straightforward way here
+7. In order to get the signature inside the Authorization header, use this Power Shell script. It has no dependencies, no snap-ins required, just run it after changing the hardcoded values to whatever they are in your case - see the next point for a detailed description of what to change and how to use it. It will print out 2 things - The UTC time and the signature. Copy the UTC time in the "Date" and "x-ms-date" headers, and copy the signature into the Authorization header after the colon
+8. Power shell script to output date and signture:
+
+```
+function Generate-AuthString
+{
+	param(
+		 [string]$accountName
+		,[string]$accountKey
+        ,[string]$containerAndBlobPath
+		,[string]$requestUtcTime
+        ,[string]$contentLength
+        ,[string]$contentType
+	) 
+
+	$authString =  "PUT$([char]10)$([char]10)$([char]10)"
+    $authString += $contentLength + "$([char]10)$([char]10)"
+    $authString += $contentType + "$([char]10)$([char]10)$([char]10)$([char]10)$([char]10)$([char]10)$([char]10)"
+    $authString += "x-ms-blob-type:" + "BlockBlob" + "$([char]10)"
+	$authString += "x-ms-date:" + $requestUtcTime + "$([char]10)"
+	$authString += "x-ms-version:2012-02-12" + "$([char]10)"
+    $authString += "/" + $accountName + "/" + $containerAndBlobPath
+	
+	$dataToMac = [System.Text.Encoding]::UTF8.GetBytes($authString)
+
+	$accountKeyBytes = [System.Convert]::FromBase64String($accountKey)
+
+	$hmac = new-object System.Security.Cryptography.HMACSHA256((,$accountKeyBytes))
+	[System.Convert]::ToBase64String($hmac.ComputeHash($dataToMac))
+}
+
+$accountName = "testamsstorage"
+$accountKey = "r7g8b6tgYYG9K4i7c3bX0FdFykpOpJ0e1n4GSa2yHWs1ddCKdSfhxKK06wxxGaymsI91eSLMDvVR7UMdo68WJQ=="
+$resourcePath = "asset-cc27435d-1500-80c3-5690-f1e4fd03b5fd/koushik.mp4"
+$fileSize = "10498677"
+$ContentTypeHeader = "application/octet-stream"
+
+$timeNow = [System.DateTime]::UtcNow.ToString("R")
+$authHeader = Generate-AuthString -requestUtcTime $timeNow -containerAndBlobPath $resourcePath -accountName $accountName -accountKey $accountKey -contentLength $fileSize -contentType $ContentTypeHeader
+
+Write-Output $timeNow
+Write-Output $authHeader
+```
+9. How to use this Power Shell script:
+- Replace the value of the variable $accountName with your STORAGE account name. Hint: Your storage account name is the first segment of the "Path" in Locator Creation Response after the pair of forward slashes and before ".blob.core.windows.net". Also, log into the portal and click on "Storage", locate the storage account associated with your AMS account, click on "Manage Keys" and it will show your storage account name
+- Replace the value of $accountKey with your STORAGE account key. Log into the portal and click on "Storage", locate the storage account associated with your AMS account, click on "Manage Keys" and it will show your storage account key (choose either the primary or the secondary key)
+- Replace the value of $resourcePath with your own - it is basically the URL from "Path" in Locator Creation Response. Drop everything from '?' onwards, just take the URL without query strings. Append "/" and then the name of the MP4 file (e.g., "/koushik.mp4" above)
+- Replace the value of $fileSize with the exact size of the MP4 file in bytes
+- Run it. It will print out 2 things - The UTC time and the signature. Copy the UTC time in both the "Date" and "x-ms-date" headers, and copy the signature into the Authorization header after the colon. You have to fire off the HTTP request within 15 minutes of generating the signature using the script, otherwise you will get a 4XX response
