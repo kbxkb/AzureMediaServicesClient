@@ -379,9 +379,9 @@ Postman-Token: ec29dc11-7646-329f-5adc-4075c9456b61
 
 ###### Notes
 
-1. This step is necessary to get the actual upload URL that we will use to upload our content file to AMS. The 'Path' and 'BaseUri' elements in the RESPONSE JSON will help us create the actual upload URL next
+1. This step is necessary to construct the actual upload URL that we will use to upload our content file to AMS. The 'Path' and 'BaseUri' elements in the RESPONSE JSON will help us create the actual upload URL next
 2. Note that in the REQUEST JSON, we are specifying the 'AccessPolicyId' from the 'Id' field in the response from Step 5, and 'AssetId' from the 'Id' field in the response from Step 3
-3. Note that in the REQUEST JSON, we are specifying 'StartTime'. In order to avoid confusion, you can use UTC time and append a 'Z' to the time string - like this: "2015-05-17T22:00:00Z". Note that this can be (and should be, unless you have a reason to create a locator that you want to be activated in the future) a time in the past. If you use the exact current time, your locator may not be active until a few minutes, because Azure servers are not time-synced with your machine
+3. Note that in the REQUEST JSON, we are specifying 'StartTime'. In order to avoid confusion, you can use UTC time and append a 'Z' to the time string - like this (see Step 16 to below see an example of a time stamp that uses 'Z'): "2015-05-17T22:00:00Z". Note that this can be (and should be, unless you have a reason to create a locator that you want to be activated in the future) a time in the past. If you use the exact current time, your locator may not be active until a few minutes, because Azure servers are not time-synced with your machine
 4. Note that in the REQUEST JSON, we are specifying 'Type' as 1 - see [here](https://msdn.microsoft.com/library/azure/hh974308.aspx#locator_entity_properties) for all possible values and meanings. In short, use 1 for SAS type of locators, and use 2 for On Demand type of locators
 5. The 'Id' field in the RESPONSE JSON gives the locator's id
 6. We will use the 'Path' field in this RESPONSE JSON to construct the upload URL and access Azure Blob Storage next
@@ -493,4 +493,359 @@ curl -v -X MERGE -H "Content-Type: application/json" -H "DataServiceVersion: 3.0
 1. As this is a HTTP MERGE request, which the Postman tool does not support today, I have shown the equivalent curl command
 2. The 'Id' field in the REQUEST JSON Payload is the AssetFile Id that we got in the response when we created the AssetFile in Step 4 above
 3. The 'ParentAssetId' field in the REQUEST JSON Payload is the Asset Id that we got in the response when we created the Asset in Step 3 above
-4. An interesting point to note is the URL where we send this request. Note the OData filter used. AMS is fully OData compatible
+
+## Encode media file to a different format using built-in encoding presets:
+
+#### Step 9 - Get a Media Processor
+
+###### Http Request
+
+```
+GET /api/MediaProcessors()?$filter=Name%20eq%20'Azure%20Media%20Encoder' HTTP/1.1
+Host: wamsbluclus001rest-hs.cloudapp.net
+DataServiceVersion: 3.0
+MaxDataServiceVersion: 3.0
+Accept: application/json
+Accept-Charset: UTF-8
+User-Agent: Microsoft ADO.NET Data Services
+Authorization: Bearer http%3a%2f%2fschemas.xmlsoap.org%2fws%2f2005%2f05%2fidentity%2fclaims%2fnameidentifier=testams&urn%3aSubscriptionId=21bb6118-8aa3-4408-adbb-b057912c24b6&http%3a%2f%2fschemas.microsoft.com%2faccesscontrolservice%2f2010%2f07%2fclaims%2fidentityprovider=https%3a%2f%2fwamsprodglobal001acs.accesscontrol.windows.net%2f&Audience=urn%3aWindowsAzureMediaServices&ExpiresOn=1432156767&Issuer=https%3a%2f%2fwamsprodglobal001acs.accesscontrol.windows.net%2f&HMACSHA256=CL7dvWib7GvBwIZBcXe37vGWunWAaEYh%2beOUxUutnKE%3d
+x-ms-version: 2.9
+Cache-Control: no-cache
+Postman-Token: 987ddcb7-0a95-86bf-22fb-ceec7b07ffef
+```
+
+###### Http Response
+
+```
+{
+"odata.metadata": "https://wamsbluclus001rest-hs.cloudapp.net/api/$metadata#MediaProcessors",
+"value": [
+{
+"Id": "nb:mpid:UUID:1b1da727-93ae-4e46-a8a1-268828765609",
+"Description": "Azure Media Encoder",
+"Name": "Azure Media Encoder",
+"Sku": "",
+"Vendor": "Microsoft",
+"Version": "4.6"
+}
+]
+}
+```
+
+###### Notes
+
+1. 'Azure Media Encoder' is just one of several Media Processors available - it is the most basic encoding processor. There is a more advanced premium version of it - 'Media Encoder Premium Workflow'. All Media Processors available are listed and described [here](http://azure.microsoft.com/en-us/documentation/articles/media-services-rest-get-media-processor/)
+2. Not all Media Processors cannot do everything. In this example, I am going to encode an MP4 file to several bitrates of Smooth Format. This _can_ be done by the simplest of encoders - 'Azure Media Encoder'. Hence I am using this one. If you want to encode an Adobe F4V file to Smooth, this Media Processor would not be able to do that, as it does not accept F4V as input. [Here](http://azure.microsoft.com/en-us/documentation/articles/media-services-encode-asset/#compare_encoders) is a good comparison of the 2 most widely used media processors for encoding: 'Azure Media Encoder' and 'Media Encoder Premium Workflow'
+3. This step is _like_ reserving your own encoding VM. Encoding is resource intensive. Hence for proper capacity management, reserving a media processor is required _before_ you can start encoding
+4. The 'Id' field in the RESPONSE JSON gives the Media Processor's id - we will use it next when we actually submit an encoding job
+
+#### Step 10 - Start an encoding job
+
+###### Http Request
+
+```
+POST /API/Jobs HTTP/1.1
+Host: wamsbluclus001rest-hs.cloudapp.net
+Content-Type: application/json;odata=verbose
+Accept: application/json;odata=verbose
+DataServiceVersion: 3.0
+MaxDataServiceVersion: 3.0
+x-ms-version: 2.8
+Authorization: Bearer http%3a%2f%2fschemas.xmlsoap.org%2fws%2f2005%2f05%2fidentity%2fclaims%2fnameidentifier=testams&urn%3aSubscriptionId=21bb6118-8aa3-4408-adbb-b057912c24b6&http%3a%2f%2fschemas.microsoft.com%2faccesscontrolservice%2f2010%2f07%2fclaims%2fidentityprovider=https%3a%2f%2fwamsprodglobal001acs.accesscontrol.windows.net%2f&Audience=urn%3aWindowsAzureMediaServices&ExpiresOn=1432156767&Issuer=https%3a%2f%2fwamsprodglobal001acs.accesscontrol.windows.net%2f&HMACSHA256=CL7dvWib7GvBwIZBcXe37vGWunWAaEYh%2beOUxUutnKE%3d
+Cache-Control: no-cache
+Postman-Token: bc4621a6-0d20-6d02-6678-f58d2cc6a4a2
+
+{"Name" : "KoushikTestJob", "InputMediaAssets" : [{"__metadata": {"uri" : "https://wamsbluclus001rest-hs.cloudapp.net/api/Assets('nb%3Acid%3AUUID%3Acc27435d-1500-80c3-5690-f1e4fd03b5fd')"}}],  "Tasks" : [{"Configuration" : "H264 Smooth Streaming 720p", "MediaProcessorId" : "nb:mpid:UUID:1b1da727-93ae-4e46-a8a1-268828765609",  "TaskBody" : "<?xml version=\"1.0\" encoding=\"utf-8\"?><taskBody><inputAsset>JobInputAsset(0)</inputAsset><outputAsset>JobOutputAsset(0)</outputAsset></taskBody>"}]}
+```
+
+###### Http Response
+
+```
+{
+"d": {
+"__metadata": {
+"id": "https://wamsbluclus001rest-hs.cloudapp.net/api/Jobs('nb%3Ajid%3AUUID%3A010f435d-1500-80c3-a70e-f1e4ff0d4333')",
+"uri": "https://wamsbluclus001rest-hs.cloudapp.net/api/Jobs('nb%3Ajid%3AUUID%3A010f435d-1500-80c3-a70e-f1e4ff0d4333')",
+"type": "Microsoft.Cloud.Media.Vod.Rest.Data.Models.Job"
+},
+"Tasks": {
+"__deferred": {
+"uri": "https://wamsbluclus001rest-hs.cloudapp.net/api/Jobs('nb%3Ajid%3AUUID%3A010f435d-1500-80c3-a70e-f1e4ff0d4333')/Tasks"
+}
+},
+"OutputMediaAssets": {
+"__deferred": {
+"uri": "https://wamsbluclus001rest-hs.cloudapp.net/api/Jobs('nb%3Ajid%3AUUID%3A010f435d-1500-80c3-a70e-f1e4ff0d4333')/OutputMediaAssets"
+}
+},
+"InputMediaAssets": {
+"__deferred": {
+"uri": "https://wamsbluclus001rest-hs.cloudapp.net/api/Jobs('nb%3Ajid%3AUUID%3A010f435d-1500-80c3-a70e-f1e4ff0d4333')/InputMediaAssets"
+}
+},
+"Id": "nb:jid:UUID:010f435d-1500-80c3-a70e-f1e4ff0d4333",
+"Name": "KoushikTestJob",
+"Created": "2015-05-20T16:28:43.0490532Z",
+"LastModified": "2015-05-20T16:28:43.0490532Z",
+"EndTime": null,
+"Priority": 0,
+"RunningDuration": 0,
+"StartTime": null,
+"State": 0,
+"TemplateId": null,
+"JobNotificationSubscriptions": {
+"__metadata": {
+"type": "Collection(Microsoft.Cloud.Media.Vod.Rest.Data.Models.JobNotificationSubscription)"
+},
+"results": [ ]
+}
+}
+}
+```
+
+###### Notes
+
+1. In this example, we have submitted an asynchronous job (with 1 encoding task) to encode an input file to a set of output files.
+2. In the REQUEST JSON payload, the "TaskBody" element accepts an embedded XML that specifies the input and output files. The "Tasks" element specifdies the Media Processor to use (we use the 'Id' we received from previous step 9) and the preset encoding profile to use for this task. We use 'H264 Smooth Streaming 720p'. The output bitrates and formats produced by this profile can be found [here](https://msdn.microsoft.com/en-us/library/azure/dn619418.aspx). A list of all such task presets can be found [here](https://msdn.microsoft.com/en-us/library/azure/dn619392.aspx)
+3. It is possible to submit up to 30 parallel tasks in the same job. See [here](http://azure.microsoft.com/en-us/documentation/articles/media-services-rest-encode-asset/#create-a-job-with-chained-tasks)
+4. I was having trouble with this request, and finally resolved it by using Content-Type as 'application/json;odata=verbose', just 'application/json' was not working for API version 2.8 (API version 2.9 had other issues so I decided to stick to 2.8 if I could help it)
+5. The 'Id' field in the RESPONSE JSON gives the Job's id - we will use it next when we monitor its status/ progress
+
+#### Step 11 - Monitor the encoding job status
+
+###### Http Request
+
+```
+GET /api/Jobs()?$filter=Id%20eq%20'nb%3Ajid%3AUUID%3A010f435d-1500-80c3-a70e-f1e4ff0d4333'&$top=1 HTTP/1.1
+Host: wamsbluclus001rest-hs.cloudapp.net
+DataServiceVersion: 3.0
+MaxDataServiceVersion: 3.0
+Accept: application/json
+Accept-Charset: UTF-8
+Authorization: Bearer http%3a%2f%2fschemas.xmlsoap.org%2fws%2f2005%2f05%2fidentity%2fclaims%2fnameidentifier=testams&urn%3aSubscriptionId=21bb6118-8aa3-4408-adbb-b057912c24b6&http%3a%2f%2fschemas.microsoft.com%2faccesscontrolservice%2f2010%2f07%2fclaims%2fidentityprovider=https%3a%2f%2fwamsprodglobal001acs.accesscontrol.windows.net%2f&Audience=urn%3aWindowsAzureMediaServices&ExpiresOn=1432156767&Issuer=https%3a%2f%2fwamsprodglobal001acs.accesscontrol.windows.net%2f&HMACSHA256=CL7dvWib7GvBwIZBcXe37vGWunWAaEYh%2beOUxUutnKE%3d
+x-ms-version: 2.8
+Cache-Control: no-cache
+Postman-Token: dd7b110b-91a9-d14e-6b96-78092777a028
+```
+
+###### Http Response
+
+```
+{
+"odata.metadata": "https://wamsbluclus001rest-hs.cloudapp.net/api/$metadata#Jobs",
+"value": [
+{
+"Id": "nb:jid:UUID:010f435d-1500-80c3-a70e-f1e4ff0d4333",
+"Name": "KoushikTestJob",
+"Created": "2015-05-20T16:28:43.493",
+"LastModified": "2015-05-20T16:28:43.493",
+"EndTime": "2015-05-20T16:34:08.467",
+"Priority": 0,
+"RunningDuration": 286974,
+"StartTime": "2015-05-20T16:28:49.46",
+"State": 3,
+"TemplateId": null,
+"JobNotificationSubscriptions": [ ]
+}
+]
+}
+```
+
+###### Notes
+
+1. As encoding job execution is asynchronous in Azure Media Services - as client you have to poll AMS for job status after submitting an encoding job. This example shows how to do that - we use the Job Id we receive in the previous step
+2. An interesting point to note is the URL where we use OData specific query string filters ('$filter=').  AMS is fully OData compatible, and stores all REST objects as Entities
+3. This part of the RESPONSE JSON gives us the job's status: "State": 3. 3 means finished (successfully). For all other values and meanings, see the 'State' property of the Job Entity [here](https://msdn.microsoft.com/library/azure/5100ddd7-92ff-4c37-84d2-4f84fee250a7#job_entity_properties)
+4. Once the job finishes, I encourage you to switch to the Azure Portal and look at the Storage account associated with your AMS account - check out the list of blob containers. You will suddenly see a lot of them. One of them (the one which is named after your Job Id) has the output files produced by the encoding job (including the Smooth output files as well as the index/manifest required for adaptive playback). The others that are created as part of the encoding job are empty - they are most likely intermittent or temporary ones, or they could also be potential outputs that the selected profile did not create. I can check with the Product team if someone is curious
+
+## Prepare to play your encoded media back:
+
+#### Step 12 - Create a _clear_ asset delivery policy
+
+###### Http Request
+
+```
+POST /api/AssetDeliveryPolicies HTTP/1.1
+Host: wamsbluclus001rest-hs.cloudapp.net
+Content-Type: application/json
+DataServiceVersion: 3.0
+MaxDataServiceVersion: 3.0
+Accept: application/json
+Accept-Charset: UTF-8
+Authorization: Bearer http%3a%2f%2fschemas.xmlsoap.org%2fws%2f2005%2f05%2fidentity%2fclaims%2fnameidentifier=testams&urn%3aSubscriptionId=21bb6118-8aa3-4408-adbb-b057912c24b6&http%3a%2f%2fschemas.microsoft.com%2faccesscontrolservice%2f2010%2f07%2fclaims%2fidentityprovider=https%3a%2f%2fwamsprodglobal001acs.accesscontrol.windows.net%2f&Audience=urn%3aWindowsAzureMediaServices&ExpiresOn=1432156767&Issuer=https%3a%2f%2fwamsprodglobal001acs.accesscontrol.windows.net%2f&HMACSHA256=CL7dvWib7GvBwIZBcXe37vGWunWAaEYh%2beOUxUutnKE%3d
+x-ms-version: 2.8
+Cache-Control: no-cache
+Postman-Token: 5ae1c7ae-79c4-2127-0a42-7d7b8face66d
+
+{"Name":"Clear Policy",
+"AssetDeliveryProtocol":7,
+"AssetDeliveryPolicyType":2,
+"AssetDeliveryConfiguration":null}
+```
+
+###### Http Response
+
+```
+{
+"odata.metadata": "https://wamsbluclus001rest-hs.cloudapp.net/api/$metadata#AssetDeliveryPolicies/@Element",
+"Id": "nb:adpid:UUID:f0cf1230-3c28-4545-96cf-30bfc1fb3421",
+"Name": "Clear Policy",
+"AssetDeliveryProtocol": 7,
+"AssetDeliveryPolicyType": 2,
+"AssetDeliveryConfiguration": null,
+"Created": "2015-05-20T17:30:54.1297134Z",
+"LastModified": "2015-05-20T17:30:54.1297134Z"
+}
+```
+
+###### Notes
+
+1. _Clear_ asset delivery policy is one that does not required encryption while delivering the Asset (as opposed to 'DynamicEnvelopeEncryption' or 'DynamicCommonEncryption' asset delivery policies) [This page](http://azure.microsoft.com/en-us/documentation/articles/media-services-rest-configure-asset-delivery-policy/) shows how to use the other kinds of delivey policy as well
+2. 'AssetDeliveryProtocol' - value of 7 indicates all three (Smooth, DASH and HLS) are allowed. Other combinations and values can be found [here](http://azure.microsoft.com/en-us/documentation/articles/media-services-rest-configure-asset-delivery-policy/#types)
+3. 'AssetDeliveryPolicyType' - value of 2 indicates clear policy. Other combinations and values can be found [here](http://azure.microsoft.com/en-us/documentation/articles/media-services-rest-configure-asset-delivery-policy/#types)
+4. The 'Id' field in the RESPONSE JSON gives the Asset Delivery Policies's id - we will use it next when we associate our Asset with this policy
+
+#### Step 13 - Link Asset with the Asset Delivery Policy
+
+###### Http Request
+
+```
+POST /api/Assets('nb%3Acid%3AUUID%3Acc27435d-1500-80c3-5690-f1e4fd03b5fd')/$links/DeliveryPolicies HTTP/1.1
+Host: wamsbluclus001rest-hs.cloudapp.net
+DataServiceVersion: 3.0
+MaxDataServiceVersion: 3.0
+Accept: application/json;odata=verbose
+Accept-Charset: UTF-8
+Content-Type: application/json;odata=verbose
+Authorization: Bearer http%3a%2f%2fschemas.xmlsoap.org%2fws%2f2005%2f05%2fidentity%2fclaims%2fnameidentifier=testams&urn%3aSubscriptionId=21bb6118-8aa3-4408-adbb-b057912c24b6&http%3a%2f%2fschemas.microsoft.com%2faccesscontrolservice%2f2010%2f07%2fclaims%2fidentityprovider=https%3a%2f%2fwamsprodglobal001acs.accesscontrol.windows.net%2f&Audience=urn%3aWindowsAzureMediaServices&ExpiresOn=1432165204&Issuer=https%3a%2f%2fwamsprodglobal001acs.accesscontrol.windows.net%2f&HMACSHA256=lWkRuaUeKz%2bTcDoD4zC9DGthFpSwhkiZrBQgGlgj4Vg%3d
+x-ms-version: 2.9
+Cache-Control: no-cache
+Postman-Token: d6994d6b-c104-1d04-c4d2-0637ebc801a5
+
+{"uri":"https://wamsbluclus001rest-hs.cloudapp.net/api/AssetDeliveryPolicies('nb%3Aadpid%3AUUID%3Af0cf1230-3c28-4545-96cf-30bfc1fb3421')"}
+```
+
+###### Http Response
+
+```
+{{No response body, just 204 No Content}}
+```
+
+###### Notes
+
+1. The example [here](http://azure.microsoft.com/en-us/documentation/articles/media-services-rest-configure-asset-delivery-policy/#clear-asset-delivery-policy) did not work as of this writing unless the following changes were made:
+  - Replaced 'media.windows.net' in BOTH places (URL as well as POST body) with 'wamsbluclus001rest-hs.cloudapp.net'
+  - x-ms-version: 2.9
+  - Content-Type: application/json;odata=verbose
+  - Accept: application/json;odata=verbose
+
+## Play your encoded media back:
+
+#### Step 14 - Create a delivery access policy for our streaming (OnDemand) locator
+
+###### Http Request
+
+```
+POST /api/AccessPolicies HTTP/1.1
+Host: wamsbluclus001rest-hs.cloudapp.net
+Content-Type: application/json;odata=verbose
+DataServiceVersion: 3.0
+MaxDataServiceVersion: 3.0
+Accept: application/json;odata=verbose
+Accept-Charset: UTF-8
+Authorization: Bearer http%3a%2f%2fschemas.xmlsoap.org%2fws%2f2005%2f05%2fidentity%2fclaims%2fnameidentifier=testams&urn%3aSubscriptionId=21bb6118-8aa3-4408-adbb-b057912c24b6&http%3a%2f%2fschemas.microsoft.com%2faccesscontrolservice%2f2010%2f07%2fclaims%2fidentityprovider=https%3a%2f%2fwamsprodglobal001acs.accesscontrol.windows.net%2f&Audience=urn%3aWindowsAzureMediaServices&ExpiresOn=1432165204&Issuer=https%3a%2f%2fwamsprodglobal001acs.accesscontrol.windows.net%2f&HMACSHA256=lWkRuaUeKz%2bTcDoD4zC9DGthFpSwhkiZrBQgGlgj4Vg%3d
+x-ms-version: 2.9
+Cache-Control: no-cache
+Postman-Token: 800578b5-7efe-2659-f32e-1c504d47a64c
+
+{"Name": "KoushikStreamPolicy", "DurationInMinutes" : "43200", "Permissions" : 1 }
+```
+
+###### Http Response
+
+```
+{
+"d": {
+"__metadata": {
+"id": "https://wamsbluclus001rest-hs.cloudapp.net/api/AccessPolicies('nb%3Apid%3AUUID%3A114890b2-263d-40af-8fe8-0dd84dfdb055')",
+"uri": "https://wamsbluclus001rest-hs.cloudapp.net/api/AccessPolicies('nb%3Apid%3AUUID%3A114890b2-263d-40af-8fe8-0dd84dfdb055')",
+"type": "Microsoft.Cloud.Media.Vod.Rest.Data.Models.AccessPolicy"
+},
+"Id": "nb:pid:UUID:114890b2-263d-40af-8fe8-0dd84dfdb055",
+"Created": "\/Date(1432145030093)\/",
+"LastModified": "\/Date(1432145030093)\/",
+"Name": "KoushikStreamPolicy",
+"DurationInMinutes": 43200,
+"Permissions": 1
+}
+}
+```
+
+###### Notes
+
+1. As far as REST reource goes, this HTTP call is no different than one we made in Step 5, where we created access policy for _uploading_ content, here we created one for _downloading_ or _streaming_ content. In short, whenever we need to access Azure Storage Content from external world, we need a _Locator_ and in order to create a Locator, we need the correct kind of _Access Policy_
+2. Note that the 'Permissions' field in REQUEST JSON has possible values of 0, 1, 2, 4 and 8 - please see [here](https://msdn.microsoft.com/library/azure/hh974297.aspx#accesspolicy_properties) for the API reference and all possible values/meanings. We are using '1' (= 'read') here because all we need to do for streaming content is _read_ it. In Step 5, we used '2' (= write) because we uploaded the file in that case
+3. Note that the access policy will be in effect until it expires - and we specify the duration in minutes in the REQUEST JSON
+4. Make a note of the 'Id' in the response. We will be using this when we refer to this access policy when we create the Locator next
+
+#### Step 15 - Start the Streaming Endpoint With one or more Streaming Units
+
+Do this in the portal --> go to Media Services and list your Media Services account, click on your account, go to "Streaming Endpoints"
+Choose the "default" one, add Streaming Units to it (CAUTION: Costs Money) in the "Scale" tab
+Start the Endpoint (Start at the bottom in the screen which lists all the endpoints for the account) if not running
+
+#### Step 16 - Create a Locator of Type 2 ('OnDemandOrigin') for streaming content
+
+###### Http Request
+
+```
+POST /api/Locators HTTP/1.1
+Host: wamsbluclus001rest-hs.cloudapp.net
+Content-Type: application/json
+DataServiceVersion: 3.0
+MaxDataServiceVersion: 3.0
+Accept: application/json
+Accept-Charset: UTF-8
+Authorization: Bearer http%3a%2f%2fschemas.xmlsoap.org%2fws%2f2005%2f05%2fidentity%2fclaims%2fnameidentifier=testams&urn%3aSubscriptionId=21bb6118-8aa3-4408-adbb-b057912c24b6&http%3a%2f%2fschemas.microsoft.com%2faccesscontrolservice%2f2010%2f07%2fclaims%2fidentityprovider=https%3a%2f%2fwamsprodglobal001acs.accesscontrol.windows.net%2f&Audience=urn%3aWindowsAzureMediaServices&ExpiresOn=1432165204&Issuer=https%3a%2f%2fwamsprodglobal001acs.accesscontrol.windows.net%2f&HMACSHA256=lWkRuaUeKz%2bTcDoD4zC9DGthFpSwhkiZrBQgGlgj4Vg%3d
+x-ms-version: 2.9
+Cache-Control: no-cache
+Postman-Token: 890c500e-5fb8-8716-29c9-0f88e7ef06f7
+
+{"AccessPolicyId":"nb:pid:UUID:114890b2-263d-40af-8fe8-0dd84dfdb055","AssetId":"nb:cid:UUID:cc27435d-1500-80c3-5690-f1e4fd03b5fd","StartTime":"2015-05-20T18:12:00Z","Type":2}
+```
+
+###### Http Response
+
+```
+{
+"odata.metadata": "https://wamsbluclus001rest-hs.cloudapp.net/api/$metadata#Locators/@Element",
+"Id": "nb:lid:UUID:2856b21f-89de-455b-b7f2-68db5586ab32",
+"ExpirationDateTime": "2015-06-19T18:12:00Z",
+"Type": 2,
+"Path": "http://testams.streaming.mediaservices.windows.net/2856b21f-89de-455b-b7f2-68db5586ab32/",
+"BaseUri": "http://testams.streaming.mediaservices.windows.net",
+"ContentAccessComponent": "2856b21f-89de-455b-b7f2-68db5586ab32",
+"AccessPolicyId": "nb:pid:UUID:114890b2-263d-40af-8fe8-0dd84dfdb055",
+"AssetId": "nb:cid:UUID:cc27435d-1500-80c3-5690-f1e4fd03b5fd",
+"StartTime": "2015-05-20T18:12:00Z",
+"Name": null
+}
+```
+
+###### Notes
+
+1. This step is necessary to construct the actual streaming URL that we will use to upload our content file to AMS. The 'Path' element in the RESPONSE JSON will help us create the actual playback URL next
+2. Note that in the REQUEST JSON, we are specifying the 'AccessPolicyId' from the 'Id' field in the response from Step 14, and 'AssetId' from the 'Id' field in the response from Step 3
+3. Note that in the REQUEST JSON, we are specifying 'StartTime'. In order to avoid confusion, you can use UTC time and append a 'Z' to the time string - like this: "2015-05-17T22:00:00Z". Note that this can be (and should be, unless you have a reason to create a locator that you want to be activated in the future) a time in the past. If you use the exact current time, your locator may not be active until a few minutes, because Azure servers are not time-synced with your machine
+4. Note that in the REQUEST JSON, we are specifying 'Type' as 2 - see [here](https://msdn.microsoft.com/library/azure/hh974308.aspx#locator_entity_properties) for all possible values and meanings. In short, use 1 for SAS type of locators, and use 2 for On Demand type of locators
+5. The 'Id' field in the RESPONSE JSON gives the locator's id
+6. We will use the 'Path' field in this RESPONSE JSON to construct the streaming URL next
+
+#### Step 17 - Play your content back
+
+  - Use this player: http://amsplayer.azurewebsites.net/azuremediaplayer.html
+  - Use the Path value returned after the creation of the locator to build the Smooth, HLS, and MPEG DASH URLs.
+    - Smooth Streaming: Path + manifest file name + "/manifest"
+    - DASH: Path + manifest file name + "/manifest(format=mpd-time-csf)"
+    - PDL: Path + asset file mp4 name
+  - See section marked 'Build Streaming URLs' [here](http://azure.microsoft.com/en-us/documentation/articles/media-services-rest-deliver-streaming-content/#create-an-ondemand-streaming-locator)
