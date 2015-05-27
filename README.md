@@ -849,3 +849,7 @@ Postman-Token: 890c500e-5fb8-8716-29c9-0f88e7ef06f7
     - DASH: Path + manifest file name + "/manifest(format=mpd-time-csf)"
     - PDL: Path + asset file mp4 name
   - See section marked 'Build Streaming URLs' [here](http://azure.microsoft.com/en-us/documentation/articles/media-services-rest-deliver-streaming-content/#create-an-ondemand-streaming-locator)
+
+#### Step 18 - Deallocate resources
+
+Deallocating/ deleting resources will help you save money, and should be built in as a best practice for developers in your organization. Thank you!
