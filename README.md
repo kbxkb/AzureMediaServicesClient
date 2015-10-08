@@ -19,7 +19,7 @@ Instead of repeating these *notes* for each REST transaction below, clustering t
 2. Some of the HTTP headers are required, some are just good practice to have. Examples do not distinguish between them
 3. For operations against Azure storage (like when we are uploading a media file), consider using the 'x-ms-client-request-id' header for request logging, examples here do not use it
 
-## Set Yourself Up for making HTTP calls to AMS:
+## Set Yourself Up for making HTTP calls to Azure Media Services:
 
 #### Step 0 Create an Azure Media Services account using the Azure Portal
 
