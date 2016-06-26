@@ -853,3 +853,5 @@ Postman-Token: 890c500e-5fb8-8716-29c9-0f88e7ef06f7
 #### Step 18 - Deallocate resources
 
 Deallocating/ deleting resources will help you save money, and should be built in as a best practice for developers in your organization. Thank you!
+
+This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
